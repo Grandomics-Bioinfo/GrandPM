@@ -20,6 +20,7 @@ from django.conf import settings
 from django.http import HttpResponseRedirect
 
 urlpatterns = [
+    url(r'^jet/', include('jet.urls', 'jet')),  # Django JET URLS
     url(r'^$', lambda r: HttpResponseRedirect('admin/')),   # Remove this redirect if you add custom views
     path('admin/', admin.site.urls),
     url(r'^advanced_filters/', include('advanced_filters.urls')),
