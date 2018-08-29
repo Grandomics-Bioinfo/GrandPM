@@ -1,14 +1,36 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+from multiselectfield import MultiSelectField
+from .forms import ProjectForm
+
+
+class Sale(models.Model):
+    class Meta:
+        verbose_name = _("销售列表")
+        verbose_name_plural = _("销售")
+    name = models.CharField(_("姓名"), max_length=200)
+    dept = models.CharField(_("区域"), max_length=200)
+    tel = models.CharField(_("电话"), max_length=20, null=True, blank=True)
+    
+
+class Analysis_Type(models.Model):
+    class Meta:
+        verbose_name = _("分析类型")
+        verbose_name_plural = _("分析类型")
+    name=models.CharField("分析类型", max_length=50)
+
+    def __str__(self):
+        return '%s' % self.name
 
 
 class Custom(models.Model):
     class Meta:
         verbose_name = _("Custom")
         verbose_name_plural = _("Custom")
-    custom_name = models.CharField("custom_name", max_length=200)
-    custom_dept = models.CharField(_("custom_dept"), max_length=200)
+    custom_name = models.CharField("客户名称", max_length=200)
+    custom_dept = models.CharField(_("客户单位"), max_length=200)
+    tel = models.CharField(_("客户电话"), max_length=20)
     def __str__(self):
         return '%s_%s' %(self.custom_name, self.custom_dept)
 
@@ -23,13 +45,16 @@ class Project(models.Model):
     ('bionano', _('Bionano')),
    ('ngs', _('NGS'))
 )
-    Analysis_Type = (
+    Analysis_Types = (
         ('met', _('甲基化')),
         ('sv', _('结构变异')),
         ('str', _('串联重复')),
         ('tumor', _('肿瘤')),
         ('haplotype', _('单体型'))
     )
+    analysis_type_list = Analysis_Type.objects.all().values_list('name')
+    analysis_type_list = [(x[0], x[0]) for x in analysis_type_list]
+    print(analysis_type_list)
 
    
     STATUSES = (
@@ -52,10 +77,10 @@ class Project(models.Model):
     proj_name = models.CharField(_("proj_name"), max_length=200)
     custom = models.ForeignKey(Custom, related_name='project_custom', on_delete=models.SET_NULL, null=True, blank=False)
     platform = models.CharField(_("platform"), max_length=20, choices=Platform, default='ont')
-    analysis_type = models.CharField(_("analysis_type"), max_length=20, choices=Analysis_Type, default='sv')
+    analysis_type = MultiSelectField(_("analysis_type"), max_length=20, choices=analysis_type_list, default='sv')
     start = models.DateField(_("start"), null=True, blank=True)
     deadline = models.DateField(_("deadline"), null=True, blank=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='project_assigned', verbose_name=_('销售'),
+    sale = models.ForeignKey(Sale, related_name='project', verbose_name=_('销售'),
                                    on_delete=models.SET_NULL, null=True, blank=True)
     state = models.CharField(_("state"), max_length=20, choices=STATUSES, default='to-do')
     priority = models.CharField(_("priority"), max_length=20, choices=PRIORITIES, default='10_normal')
@@ -65,10 +90,8 @@ class Project(models.Model):
     last_modified = models.DateTimeField(_("last modified"), auto_now=True, editable=False)
 
     description = models.TextField(_("description"), max_length=2000, null=True, blank=True)
-    
     def __str__(self):
         return "[%s] %s" % (self.id, self.proj_id)
-
 
 
 class Sample(models.Model):
@@ -82,20 +105,23 @@ class Sample(models.Model):
    ('ngs', _('NGS'))
 )
     Analysis_Type = (
-        ('met', _('甲基化')),
-        ('sv', _('结构变异')),
-        ('str', _('串联重复')),
-        ('tumor', _('肿瘤')),
-        ('haplotype', _('单体型'))
+        ('Met', _('甲基化')),
+        ('SV', _('结构变异')),
+        ('STR', _('串联重复')),
+        ('Tumor', _('肿瘤')),
+        ('Haplotype', _('单体型'))
     )
 
 
     STATUSES = (
-        ('to-do', _('To Do')),
-        ('in_progress', _('In Progress')),
-        ('blocked', _('Blocked')),
-        ('done', _('Done')),
-        ('dismissed', _('Dismissed'))
+        ('weishouyang', _('未收样')),
+        ('shouyang', _('收样')),
+        ('tiqu', _('提取')),
+        ('jianku', _('建库')),
+        ('shangji', _('上机测序')),
+        ('fenxi', _('生信分析')),
+        ('jiedu', _('报告解读')),
+        ('jiaofu', _('交付'))
     )
 
     PRIORITIES = (
@@ -107,16 +133,16 @@ class Sample(models.Model):
     )
 
 
-    sample_id = models.CharField(_("sample_id"), max_length=200)
-    sample_name = models.CharField(_("sample_name"), max_length=200)
-    platform = models.CharField(_("platform"), max_length=20, choices=Platform, default='ont')
-    analysis_type = models.CharField(_("analysis_type"), max_length=20, choices=Analysis_Type, default='sv')
-    start = models.DateField(_("start"), null=True, blank=True)
-    deadline = models.DateField(_("deadline"), null=True, blank=True)
-    priority = models.CharField(_("priority"), max_length=20, choices=PRIORITIES, default='10_normal')
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True, editable=False)
-    last_modified = models.DateTimeField(_("last modified"), auto_now=True, editable=False) 
-    state = models.CharField(_("state"), max_length=20, choices=STATUSES, default='to-do')
+    sample_id = models.CharField(_("样本编号"), max_length=200)
+    sample_name = models.CharField(_("样本姓名"), max_length=200)
+    platform = models.CharField(_("测序平台"), max_length=20, choices=Platform, default='ont')
+    analysis_type = models.CharField(_("分析类型"), max_length=20, choices=Analysis_Type, default='sv')
+    start = models.DateField(_("开始时间"), null=True, blank=True)
+    deadline = models.DateField(_("截止时间"), null=True, blank=True)
+    priority = models.CharField(_("优先级"), max_length=20, choices=PRIORITIES, default='10_normal')
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, editable=False)
+    last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False) 
+    state = models.CharField(_("状态"), max_length=20, choices=STATUSES, default='to-do')
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sample_created', verbose_name=_('created by'),
                                    on_delete=models.SET_NULL, null=True)
 

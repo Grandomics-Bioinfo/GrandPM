@@ -33,6 +33,7 @@ ALLOWED_HOSTS = [ '*' ]
 
 INSTALLED_APPS = [
     'jet',
+    #'grappelli',
     'mtasks.apps.MtasksConfig',
     'pm.apps.MtasksConfig',
     'advanced_filters',
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'multiselectfield'
 ]
 
 MIDDLEWARE = [
