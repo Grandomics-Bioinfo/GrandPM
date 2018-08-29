@@ -12,7 +12,7 @@ class Sale(models.Model):
     name = models.CharField(_("姓名"), max_length=200)
     dept = models.CharField(_("区域"), max_length=200)
     tel = models.CharField(_("电话"), max_length=20, null=True, blank=True)
-    
+
 
 class Analysis_Type(models.Model):
     class Meta:
@@ -30,7 +30,7 @@ class Custom(models.Model):
         verbose_name_plural = _("Custom")
     custom_name = models.CharField("客户名称", max_length=200)
     custom_dept = models.CharField(_("客户单位"), max_length=200)
-    tel = models.CharField(_("客户电话"), max_length=20)
+    tel = models.CharField(_("客户电话"), max_length=20, blank=True)
     def __str__(self):
         return '%s_%s' %(self.custom_name, self.custom_dept)
 
@@ -45,7 +45,7 @@ class Project(models.Model):
     ('bionano', _('Bionano')),
    ('ngs', _('NGS'))
 )
-    Analysis_Types = (
+    analysis_type_list = (
         ('met', _('甲基化')),
         ('sv', _('结构变异')),
         ('str', _('串联重复')),
@@ -54,9 +54,8 @@ class Project(models.Model):
     )
     analysis_type_list = Analysis_Type.objects.all().values_list('name')
     analysis_type_list = [(x[0], x[0]) for x in analysis_type_list]
-    print(analysis_type_list)
 
-   
+
     STATUSES = (
         ('to-do', _('To Do')),
         ('in_progress', _('In Progress')),
@@ -84,14 +83,17 @@ class Project(models.Model):
                                    on_delete=models.SET_NULL, null=True, blank=True)
     state = models.CharField(_("state"), max_length=20, choices=STATUSES, default='to-do')
     priority = models.CharField(_("priority"), max_length=20, choices=PRIORITIES, default='10_normal')
+    
+
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='project_created', verbose_name=_('created by'),
                                    on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(_("created at"), auto_now_add=True, editable=False)
     last_modified = models.DateTimeField(_("last modified"), auto_now=True, editable=False)
 
     description = models.TextField(_("description"), max_length=2000, null=True, blank=True)
+
     def __str__(self):
-        return "[%s] %s" % (self.id, self.proj_id)
+        return "[%s] %s" % (self.proj_id, self.proj_name)
 
 
 class Sample(models.Model):
@@ -102,7 +104,7 @@ class Sample(models.Model):
     ('pb', _('Pacbio')),
     ('ont', _('Nanopore')),
     ('bionano', _('Bionano')),
-   ('ngs', _('NGS'))
+    ('ngs', _('NGS'))
 )
     Analysis_Type = (
         ('Met', _('甲基化')),
@@ -132,6 +134,8 @@ class Sample(models.Model):
         ('40_blocker', _('Blocker'))
     )
 
+    project = models.ForeignKey(Project, related_name='sample', verbose_name=_('合同编号'),
+                                   on_delete=models.SET_NULL, null=True, blank=True)
 
     sample_id = models.CharField(_("样本编号"), max_length=200)
     sample_name = models.CharField(_("样本姓名"), max_length=200)
@@ -139,12 +143,28 @@ class Sample(models.Model):
     analysis_type = models.CharField(_("分析类型"), max_length=20, choices=Analysis_Type, default='sv')
     start = models.DateField(_("开始时间"), null=True, blank=True)
     deadline = models.DateField(_("截止时间"), null=True, blank=True)
+    tiqu_start = models.DateTimeField(_("提取开始时间"), null=True, blank=True)
+    jianku_start = models.DateTimeField(_("建库开始时间"), null=True, blank=True)
+    cexu_start = models.DateTimeField(_("上机开始时间"), null=True, blank=True)
+    shengxin_start = models.DateTimeField(_("生信开始时间"), null=True, blank=True)
     priority = models.CharField(_("优先级"), max_length=20, choices=PRIORITIES, default='10_normal')
-    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, editable=False)
-    last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False) 
     state = models.CharField(_("状态"), max_length=20, choices=STATUSES, default='to-do')
+    description = models.TextField(_("description"), max_length=2000, null=True, blank=True)
+
+    
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, editable=False)
+    last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sample_created', verbose_name=_('created by'),
                                    on_delete=models.SET_NULL, null=True)
+    def __str__(self):
+        return "[%s] %s" % (self.sample_id, self.sample_name)
+
+
+    
+
+
+
+
 
 
 class Sequence(models.Model):
@@ -161,16 +181,24 @@ class Sequence(models.Model):
     ('G03', _('GridION_3')),
     ('G04', _('GridION_4')),
     ('P01', _('PromethION_1'))
-)
-    jianku_date = models.DateTimeField(_("jianku_date"), editable=True)
-    sample_type = models.CharField(_("sample_type"), max_length=20, choices=Sample_Type, default='dna')
-    library_id = models.CharField(_("library_id"), max_length=200)
-    machine_id = models.CharField(_("machine_id"), max_length=200,  choices=Machine_ID)
-    cell_id = models.CharField(_("cell_id"), max_length=200)
-    sequence_time = models.DateTimeField(_("sequence_time"))
-    yield_data = models.FloatField(_("yield_data"))
+)  
+    sample = models.ForeignKey(Sample, related_name='sequence', verbose_name=_('样本编号'),
+                                   on_delete=models.SET_NULL, null=True, blank=True)
+    jianku_date = models.DateTimeField(_("jianku_date"), editable=True, null=True, blank=True)
+    sample_type = models.CharField(_("sample_type"), max_length=20, choices=Sample_Type, default='dna', null=True, blank=True)
+    library_id = models.CharField(_("library_id"), max_length=200, null=True, blank=True)
+    machine_id = models.CharField(_("machine_id"), max_length=200,  choices=Machine_ID, null=True, blank=True)
+    cell_id = models.CharField(_("cell_id"), max_length=200, null=True, blank=True)
+    sequence_start = models.DateTimeField(_("sequence_start"), null=True, blank=True)
+    sequence_end = models.DateTimeField(_("sequence_end"), null=True, blank=True)
+    yield_data = models.FloatField(_("yield_data"), null=True, blank=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sequence_user', verbose_name=_('测序人员'),
                                    on_delete=models.SET_NULL, null=True, blank=True)
+    description = models.TextField(_("description"), max_length=2000, null=True, blank=True)
 
 
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, editable=False)
+    last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sequence_created', verbose_name=_('created by'),
+                                   on_delete=models.SET_NULL, null=True)
 
