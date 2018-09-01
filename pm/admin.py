@@ -35,9 +35,9 @@ class ProjectAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     readonly_fields = ('created_at', 'last_modified', 'created_by')
 
     fieldsets_temp = (               # Edition form
-        (None,  {'fields': (('proj_id', 'proj_name'), ('sample_amount', 'proj_owner'), 
-                           ('platform', 'analysis_type'), ('start', 'deadline', 'end'),('status', 'priority'), 
-                           ('custom', 'sale'), ('contract_type', 'is_invoice', 'invoice_id'), ('price', 'is_pay', 'pay_money'), 'description')}),
+        (None,  {'fields': ('proj_id', 'proj_name', 'sample_amount', 'proj_owner', 
+                           'platform', 'analysis_type', 'start', 'deadline', 'end','status', 'priority')}),
+        (_('合同'),{'fields':(('custom', 'sale'), ('contract_type', 'is_invoice', 'invoice_id'), ('price', 'is_pay', 'pay_money'), 'description'), 'classes': ('collapse',)}),
         (_('More...'), {'fields': (('created_at', 'last_modified'), 'created_by'), 'classes': ('collapse',)}),
     )
 #    inlines = [ItemInline]
