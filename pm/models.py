@@ -16,13 +16,28 @@ class Sale(models.Model):
     def __str__(self):
         return '%s' % self.name
 
+
+class Platform(models.Model):
+    class Meta:
+        verbose_name = _("测序平台")
+        verbose_name_plural = _("测序平台")
+    name = models.CharField("平台名称", max_length=200)
+    name_long = models.CharField("平台全称", max_length=200)
+
+    def __str__(self):
+        return self.name
+
+ 
 class Machine(models.Model):
     class Meta:
         verbose_name = _("测序仪")
         verbose_name_plural = _("测序仪")
     name = models.CharField(_("机器编号"), max_length=200)
-    platform = models.CharField(_("平台"), max_length=200)
     dept = models.CharField(_("部门"), max_length=200, null=True, blank=True)
+    platform = models.ForeignKey(Platform, related_name='machine', verbose_name=_('测序平台'),
+                               on_delete=models.PROTECT, null=True, blank=False)
+    def __str__(self):
+        return self.name
 
 class Analysis_Type(models.Model):
     class Meta:
@@ -31,45 +46,26 @@ class Analysis_Type(models.Model):
     name=models.CharField("分析类型", max_length=50)
 
     def __str__(self):
-        return '%s' % self.name
+        return self.name
 
 
 class Custom(models.Model):
     class Meta:
         verbose_name = _("客户")
         verbose_name_plural = _("客户")
-    custom_name = models.CharField("客户名称", max_length=200)
-    custom_dept = models.CharField(_("客户单位"), max_length=200)
+    name = models.CharField("客户名称", max_length=200)
+    dept = models.CharField(_("客户单位"), max_length=200)
     tel = models.CharField(_("客户电话"), max_length=20, blank=True)
+    addr = models.CharField(_("地址"), max_length=200, blank=True, null=True)
     country = models.CharField(_("国家"), max_length=20, blank=True, null=True)
     def __str__(self):
-        return '%s' % self.custom_name
+        return self.name
 
 
 class Project(models.Model):
     class Meta:
         verbose_name = _("项目")
         verbose_name_plural = _("项目")
-
-    Platform = (
-    ('Pacbio', _('Pacbio')),
-    ('Nanopore', _('Nanopore')),
-    ('Bionano', _('Bionano')),
-   ('NGS', _('NGS'))
-)
-    analysis_type_list = (
-        ('met', _('甲基化')),
-        ('sv', _('结构变异')),
-        ('str', _('串联重复')),
-        ('tumor', _('肿瘤')),
-        ('haplotype', _('单体型'))
-    )
-    try:
-        analysis_type_list = Analysis_Type.objects.all().values_list('name')
-        analysis_type_list = [(x[0], x[0]) for x in analysis_type_list]
-    except:
-        pass
-
 
     STATUSES = (
         ('To Do', _('To Do')),
@@ -101,8 +97,9 @@ class Project(models.Model):
 
     custom = models.ForeignKey(Custom, related_name='project_custom', verbose_name=_('客户名称'),
                                on_delete=models.PROTECT, null=True, blank=False)
-    platform = MultiSelectField(_("测序平台"), max_length=20, choices=Platform, default='ont')
-    analysis_type = MultiSelectField(_("分析类型"), max_length=20, choices=analysis_type_list)
+
+    platform = models.ManyToManyField(Platform, verbose_name=_("测序平台"), blank=True )    
+    analysis_type = models.ManyToManyField(Analysis_Type, verbose_name=_("分析类型"), blank=True)
     start = models.DateField(_("启动时间"), null=True, blank=True)
     deadline = models.DateField(_("截止日期"), null=True, blank=True)
     end = models.DateField(_("完成时间"), null=True, blank=True)
@@ -127,27 +124,13 @@ class Project(models.Model):
 
 
     def __str__(self):
-        return "[%s] %s" % (self.proj_id, self.proj_name)
+        return "%s-%s" % (self.proj_id, self.proj_name)
 
 
 class Sample(models.Model):
     class Meta:
         verbose_name = _("样本")
         verbose_name_plural = _("样本")
-
-    Platform = (
-    ('Pacbio', _('Pacbio')),
-    ('Nanopore', _('Nanopore')),
-    ('Bionano', _('Bionano')),
-   ('NGS', _('NGS')))
-
-    Analysis_Type = (
-        ('Met', _('甲基化')),
-        ('SV', _('结构变异')),
-        ('STR', _('串联重复')),
-        ('Tumor', _('肿瘤')),
-        ('Haplotype', _('单体型'))
-    )
 
 
     STATUSES = (
@@ -175,8 +158,8 @@ class Sample(models.Model):
     sample_id = models.CharField(_("样本编号"), max_length=200)
     sample_name = models.CharField(_("样本姓名"), max_length=200)
     sample_name2 = models.CharField(_("修正姓名"), max_length=200, null=True, blank=True)
-    platform = MultiSelectField(_("测序平台"), max_length=20, choices=Platform,null=True, blank=True)
-    analysis_type = models.CharField(_("分析类型"), max_length=20, choices=Analysis_Type,null=True, blank=True)
+    platform = models.ManyToManyField(Platform, verbose_name=_("测序平台"), blank=True )    
+    analysis_type = models.ManyToManyField(Analysis_Type, verbose_name=_("分析类型"), blank=True)
     sample_type = models.CharField(_("样本类型"), max_length=20, null=True, blank=True)
     start = models.DateField(_("开始时间"), null=True, blank=True)
     end = models.DateTimeField(_("交付时间"), null=True, blank=True)
@@ -210,17 +193,19 @@ class Extraction(models.Model):
     ('临床', '临床')
 )
     order_id = models.CharField(_("下单编号"), max_length=200, null=True, blank=True)
-    order_date = models.DateTimeField(_("下单时间"), editable=True, null=True, blank=True)
-    sample = models.ForeignKey(Sample, related_name='extract', verbose_name=_('样本编号'),
+    order_date = models.DateTimeField(_("下单时间"), auto_now_add=True, editable=False)
+    sample = models.ForeignKey(Sample, related_name='extraction', verbose_name=_('样本编号'),
                                    on_delete=models.PROTECT, null=True, blank=True)
 
     proj_type = models.CharField(_("项目类型"), max_length=50,choices=PROJ_TYPE, null=True, blank=True)
-    bct_id = models.CharField(_("采血管编号"), max_length=500,choices=PROJ_TYPE, null=True, blank=True) # 采血管blood collection tube
+    bct_id = models.CharField(_("采血管编号"), max_length=500, null=True, blank=True) # 采血管blood collection tube
     bct_amount = models.IntegerField(_("管数"), null=True, blank=True)
     sample_type = models.CharField(_("样本类型"), max_length=20, null=True, blank=True)
     method = models.CharField(_("提取方法"), max_length=20, null=True, blank=True) 
     is_finish = models.BooleanField("是否完成", blank=True, default=False) 
     finish_date = models.DateTimeField(_("完成时间"), editable=True, null=True, blank=True) 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='extraction', verbose_name=_('提取人员'),
+                                   on_delete=models.PROTECT, null=True, blank=True)
     
     description = models.TextField(_("备注"), max_length=2000, null=True, blank=True)
 
@@ -228,6 +213,9 @@ class Extraction(models.Model):
     last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='extract_created', verbose_name=_('created by'),
                                    on_delete=models.PROTECT, null=True)
+
+    def __str__(self):
+        return 'Extraction:%s' % self.sample
 
 class Sequence(models.Model):
     class Meta:
@@ -244,18 +232,21 @@ class Sequence(models.Model):
     ('G04', _('GridION_4')),
     ('P01', _('PromethION_1'))
 ) 
-    Machine_ID = Machine.objects.all().values_list('name')
-    Machine_ID = [(x[0], x[0]) for x in Machine_ID]
+    #Machine_ID = Machine.objects.all().values_list('name')
+    #Machine_ID = [(x[0], x[0]) for x in Machine_ID]
         
     order_id = models.CharField(_("下单编号"), max_length=200, null=True, blank=True)
-    order_date = models.DateTimeField(_("下单时间"), editable=True, null=True, blank=True)
+    order_date = models.DateTimeField(_("下单时间"), auto_now_add=True, editable=False)
     sample = models.ForeignKey(Sample, related_name='sequence', verbose_name=_('样本编号'),
                                    on_delete=models.PROTECT, null=True, blank=True)
     library_require = models.CharField(_("建库要求"), max_length=500, null=True, blank=True)
     library_start = models.DateTimeField(_("建库时间"), editable=True, null=True, blank=True)
     sample_type = models.CharField(_("样本类型"), max_length=20, choices=Sample_Type, default='DNA', null=True, blank=True)
     library_id = models.CharField(_("文库编号"), max_length=50, null=True, blank=True)
-    machine_id = models.CharField(_("机器编号"), max_length=50,  choices=Machine_ID, null=True, blank=True)
+    library_size = models.CharField(_("建库大小"), max_length=50, null=True, blank=True)
+    library_kit = models.CharField(_("建库试剂盒"), max_length=50, null=True, blank=True)
+    machine = models.ForeignKey(Machine, related_name='sequence', verbose_name=_('机器编号'),
+                                   on_delete=models.PROTECT, null=True, blank=True)
     cell_pos = models.CharField(_("上机位置"), max_length=50, null=True, blank=True)
     sequence_start = models.DateTimeField(_("测序开始时间"), null=True, blank=True)
     sequence_end = models.DateTimeField(_("测序结束时间"), null=True, blank=True)
@@ -267,15 +258,33 @@ class Sequence(models.Model):
     ap_g2 = models.IntegerField(_("Active Pore G2"), null=True, blank=True)
     ap_g3 = models.IntegerField(_("Active Pore G3"), null=True, blank=True)
     ap_g4 = models.IntegerField(_("Active Pore G4"), null=True, blank=True)
+
+    total_bases = models.BigIntegerField(_('原始数据量'), null=True, blank=True) 
+    total_reads = models.PositiveIntegerField(_('原始reads数目'), null=True, blank=True)
+
+    pass_bases = models.BigIntegerField(_('过滤数据量'), null=True, blank=True) 
+    pass_total_reads = models.PositiveIntegerField(_('过滤reads数目'),null=True, blank=True)
+    pass_reads_avg =  models.PositiveIntegerField(_('Reads平均长度'),null=True, blank=True)
+    pass_reads_n50 =  models.PositiveIntegerField(_('Reads N50长度'), null=True, blank=True)
+    pass_reads_median =  models.PositiveIntegerField(_('Reads中位数长度'), null=True, blank=True)
+    pass_reads_avg_score = models.PositiveSmallIntegerField(_('平均质量值'), null=True, blank=True)
+
+    mapped_reads = models.PositiveIntegerField(_('过滤reads数目'), null=True, blank=True)
+    mapped_bases = models.BigIntegerField(_('过滤数据量'), null=True, blank=True)
+    raw_dir = models.CharField(_("Raw data 路径"), max_length=200, null=True, blank=True)
+    pass_dir = models.CharField(_("Pass data 路径"), max_length=200, null=True, blank=True) 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sequence', verbose_name=_('测序人员'),
                                    on_delete=models.PROTECT, null=True, blank=True)
 
     description = models.TextField(_("备注"), max_length=2000, null=True, blank=True)
+    
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, editable=False)
     last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sequence_created', verbose_name=_('创建人'),
                                    on_delete=models.PROTECT, null=True)
 
+    def __str__(self):
+        return 'Sequence %s' % self.sample
 
 class Bioinfo(models.Model):
     class Meta:
@@ -284,20 +293,7 @@ class Bioinfo(models.Model):
 
     sample = models.ForeignKey(Sample, related_name='Bioinfo', verbose_name=_('样本编号'),
                                    on_delete=models.PROTECT, null=True, blank=True)
-    total_bases = models.BigIntegerField(_('原始数据量')) 
-    total_reads = models.PositiveIntegerField(_('原始reads数目'))
-
-    pass_bases = models.BigIntegerField(_('过滤数据量')) 
-    pass_total_reads = models.PositiveIntegerField(_('过滤reads数目'))
-    pass_reads_avg =  models.PositiveIntegerField(_('Reads平均长度'))
-    pass_reads_n50 =  models.PositiveIntegerField(_('Reads N50长度'))
-    pass_reads_median =  models.PositiveIntegerField(_('Reads中位数长度'))
-    pass_reads_avg_score = models.PositiveSmallIntegerField(_('平均质量值'))
-
-    mapped_reads = models.PositiveIntegerField(_('过滤reads数目'))
-    mapped_bases = models.BigIntegerField(_('过滤数据量'))
-    error_rate = models.FloatField(_("yield_data"), null=True, blank=True)
-
+   
     re = models.IntegerField(_("DEL数目"), null=True, blank=True)
     del_amount = models.IntegerField(_("DEL数目"), null=True, blank=True)
     ins_amount = models.IntegerField(_("INS数目"), null=True, blank=True)
@@ -308,8 +304,6 @@ class Bioinfo(models.Model):
     bioinfo_start = models.DateTimeField(_("生信分析开始时间"), null=True, blank=True)
     bioinfo_end = models.DateTimeField(_("生信分析结束时间"), null=True, blank=True)
     report_end = models.DateTimeField(_("报告解读结束时间"), null=True, blank=True)
-    raw_dir = models.CharField(_("Raw data 路径"), max_length=200, null=True, blank=True)
-    pass_dir = models.CharField(_("Pass data 路径"), max_length=200, null=True, blank=True) 
     analysis_dir = models.CharField(_("分析目录"), max_length=200, null=True, blank=True)
     
     description = models.TextField(_("备注"), max_length=2000, null=True, blank=True)
