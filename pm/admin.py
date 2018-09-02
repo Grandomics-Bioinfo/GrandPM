@@ -35,7 +35,7 @@ class ProjectAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     readonly_fields = ('created_at', 'last_modified', 'created_by')
 
     fieldsets_temp = (               # Edition form
-        (None,  {'fields': ('proj_id', 'proj_name', 'sample_amount', 'proj_owner', 
+        (None,  {'fields': ('proj_id', 'proj_name', 'sample_amount', 'proj_owner',
                            'platform', 'analysis_type', 'start', 'deadline', 'end','status', 'priority')}),
         (_('合同'),{'fields':(('custom', 'sale'), ('contract_type', 'is_invoice', 'invoice_id'), ('price', 'is_pay', 'pay_money'), 'description'), 'classes': ('collapse',)}),
         (_('More...'), {'fields': (('created_at', 'last_modified'), 'created_by'), 'classes': ('collapse',)}),
@@ -109,7 +109,7 @@ class SampleAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
         # print()
     order_sequence.short_description = "下单测序"
 
-    def export_csv(self, request, queryset): 
+    def export_csv(self, request, queryset):
 	    meta = self.model._meta
 	    field_names = [field.name for field in meta.fields]
 
@@ -120,7 +120,7 @@ class SampleAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
 	    writer.writerow(field_names)
 	    for obj in queryset:
 	        row = writer.writerow([getattr(obj, field) for field in field_names])
-	    
+
 	    messages.add_message(request, messages.INFO, '导出成功')
 
 	    return response
@@ -146,7 +146,7 @@ class ExtractionAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     # autocomplete_fields = ['project']
 
    # inlines = [ItemInline]
-    fieldsets_tmp = ( 
+    fieldsets_tmp = (
                 (None, {'fields': ('sample', 'order_id', 'order_date', 'proj_type','bct_id', 'bct_amount',
                         'sample_type','method', 'finish_date',
                          'user', 'description')}),
@@ -187,7 +187,7 @@ class SequenceAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     # autocomplete_fields = ['project']
 
    # inlines = [ItemInline]
-    fieldsets_tmp = ( 
+    fieldsets_tmp = (
                 (None, {'fields': ('sample', 'order_id', 'order_date', 'library_require','library_start', 'sample_type',
                         'library_id','machine_id', 'cell_pos', 'sequence_start', 'sequence_end', 'yield_data',
                        ('ap_total','ap_muxscan'), ('ap_g1', 'ap_g2', 'ap_g3', 'ap_g4'),
@@ -228,7 +228,7 @@ class BioinfoAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     # autocomplete_fields = ['project']
 
    # inlines = [ItemInline]
-    fieldsets_tmp = ( 
+    fieldsets_tmp = (
                 (None, {'fields': ('sample', 'total_bases','pass_bases', 'pass_reads_n50'
                        'user', 'description')}),
                (_('More...'), {'fields': (('created_at', 'last_modified'), 'created_by'), 'classes': ('collapse',)})

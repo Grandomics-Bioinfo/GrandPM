@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 
 import os
 import dj_database_url
-
+from django.utils.translation import ugettext_lazy as _
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [ '*' ]
 # Application definition
 
 INSTALLED_APPS = [
-    'jet',
+    'jet.dashboard', 'jet',
     #'grappelli',
     'mtasks.apps.MtasksConfig',
     'pm.apps.MtasksConfig',
@@ -141,4 +141,25 @@ STATIC_ROOT = BASE_DIR + '/static/'
 # Custom configurations
 #
 
-SITE_HEADER = os.environ.get('SITE_HEADER', 'Django Coleman - A Simple Task Manager')
+SITE_HEADER = os.environ.get('SITE_HEADER', 'GrandOmics Project Manage')
+
+JET_SIDE_MENU_ITEMS = [  # A list of application or custom item dicts
+        {'label': 'General', 'items': [
+                    {'name': 'pm.project', 'label': _('项目信息')},
+                    {'name': 'pm.sample', 'label': _('样本信息')},
+                    {'name': 'pm.extraction', 'label': _('样本提取')},
+                    {'name': 'pm.sequence', 'label': _('建库测序')},
+                ]},
+        {'label': 'Users', 'items': [
+                    {'name': 'auth.user'},
+                    {'name': 'auth.group'},
+                ]},
+]
+JET_SIDE_MENU_CUSTOM_APPS = [
+        ('core', [ # Each list element is a tuple with application name (app_label) and list of models
+                    'User',
+                ]),
+]
+JET_SIDE_MENU_COMPACT = True
+
+JET_DEFAULT_THEME = 'light-green'

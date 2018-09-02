@@ -22,6 +22,8 @@ from django.http import HttpResponseRedirect
 urlpatterns = [
     url(r'^jet/', include('jet.urls', 'jet')),  # Django JET URLS
 #path('grappelli/', include('grappelli.urls')), # grappelli URLS
+    url(r'^jet/dashboard/', include('jet.dashboard.urls', 'jet-dashboard')),  # Django JET dashboard URLS
+
     url(r'^$', lambda r: HttpResponseRedirect('admin/')),   # Remove this redirect if you add custom views
     path('admin/', admin.site.urls),
     url(r'^advanced_filters/', include('advanced_filters.urls')),
