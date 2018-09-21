@@ -3,6 +3,14 @@ from django import forms
 
 from django.utils.translation import ugettext_lazy as _
 
+class CsvImportForm(forms.Form):
+    csv_file = forms.FileField()
+
+
+class ExcelImportForm(forms.Form):
+    excel_file = forms.FileField()
+
+
 class ProjectForm(forms.ModelForm):
     Analysis_Typeaa = (
         ('met', _('甲基化aaa')),

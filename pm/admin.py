@@ -1,6 +1,7 @@
 import csv
-from django.http import HttpResponse
+import os
 
+from django.http import HttpResponse
 from adminfilters.multiselect import UnionFieldListFilter
 from advanced_filters.admin import AdminAdvancedFiltersMixin
 from django.contrib import admin
@@ -10,7 +11,13 @@ from django.utils.translation import ugettext_lazy as _
 from .models import *
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 from django.contrib import messages
-from .forms import ProjectForm
+from django.urls import path, reverse
+from django.shortcuts import render, redirect
+import pandas as pd
+
+from .forms import ProjectForm, CsvImportForm
+from .utils import ExportCsvMixin, import_project
+
 
 class MachineAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     list_display = ('id', 'name', 'platform')
@@ -23,12 +30,14 @@ class Analysis_Type_Admin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
 
 
 class SaleAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
-    list_display = ('id', 'name', 'dept', 'tel')
+    list_display = ('id', 'name', 'region', 'tel')
 
 class CustomAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     list_display = ('id', 'name', 'dept')
 
-class ProjectAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
+class ProjectAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin, ExportCsvMixin):
+    change_list_template = "pm/list_import.html"
+
     filter_horizontal = ('platform', 'analysis_type')
     list_display = ('id', 'proj_id', 'proj_name','get_platform','get_analysis_type', 'start', 'deadline', 'status', 'custom')
     list_display_links = ('id', 'proj_id')
@@ -70,11 +79,55 @@ class ProjectAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
+    # import csv
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path('import-csv/', self.import_csv),
+            path('import-excel/', self.import_excel),
+        ]
+        return my_urls + urls
+
+    def import_excel(self, request):
+        if request.method == "POST":
+            csv_file = request.FILES["csv_file"]
+            #df = pd.read_excel(csv_file)
+            import_project(csv_file)
+            # Create Hero objects from passed in data
+            # ...
+            self.message_user(request, "Your csv file has been imported")
+            return redirect("..")
+        form = CsvImportForm()
+        payload = {"form": form}
+        return render(
+            request, "pm/csv_form.html", payload
+        )
+
+
+
+
+    def import_csv(self, request):
+        if request.method == "POST":
+            csv_file = request.FILES["csv_file"]
+            #df = pd.read_excel(csv_file)
+            import_project(csv_file)
+            # Create Hero objects from passed in data
+            # ...
+            self.message_user(request, "Your csv file has been imported")
+            return redirect("..")
+        form = CsvImportForm()
+        payload = {"form": form}
+        return render(
+            request, "pm/csv_form.html", payload
+        )
+
+
 
 class SampleAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     filter_horizontal = ('platform', 'analysis_type')
     list_display = ('project', 'get_project_name','sample_id', 'sample_name', 'get_platform','get_analysis_type', 'start', 'deadline', 'status')
-    list_display_links = ('project','sample_id', 'sample_name')
+    #list_editable = ('project', 'start', 'deadline', 'status')
+    list_display_links = ('sample_id', 'sample_name')
     def get_project_name(self, obj):
         return obj.project.proj_name
     # list_filter = (
@@ -242,6 +295,19 @@ class SequenceAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
         if change is False:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+    actions = ['copy_one']
+    def copy_one(self, request, queryset):
+        
+        for obj in queryset:
+            seq = Sequence(sample=obj.sample, created_by = request.user)
+            seq.save()
+            #s=obj.sequence.create(created_by = request.user)
+            # s.save()
+        messages.add_message(request, messages.INFO, '新建样本成功')
+        # print()
+    copy_one.short_description = "加测样本"
+    
 
 class BioinfoAdmin(AdminAdvancedFiltersMixin, admin.ModelAdmin):
     list_display = ('sample',)

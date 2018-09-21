@@ -10,7 +10,8 @@ class Sale(models.Model):
         verbose_name = _("销售列表")
         verbose_name_plural = _("销售")
     name = models.CharField(_("姓名"), max_length=200)
-    dept = models.CharField(_("区域"), max_length=200)
+    region = models.CharField(_("区域"), max_length=200, null=True, blank=True)
+   # city = models.CharField(_("地区"), max_length=200, null=True, blank=True)
     tel = models.CharField(_("电话"), max_length=20, null=True, blank=True)
 
     def __str__(self):
@@ -53,11 +54,13 @@ class Custom(models.Model):
     class Meta:
         verbose_name = _("客户")
         verbose_name_plural = _("客户")
-    name = models.CharField("客户名称", max_length=200)
-    dept = models.CharField(_("客户单位"), max_length=200)
-    tel = models.CharField(_("客户电话"), max_length=20, blank=True)
+    name = models.CharField("客户姓名", max_length=200, blank=True, null=True)
+    dept = models.CharField(_("客户单位"), max_length=200, blank=True, null=True)
+    keshi = models.CharField(_("客户科室"), max_length=200, blank=True, null=True)
+    tel = models.CharField(_("客户电话"), max_length=20, blank=True, null=True)
     addr = models.CharField(_("地址"), max_length=200, blank=True, null=True)
     country = models.CharField(_("国家"), max_length=20, blank=True, null=True)
+
     def __str__(self):
         return self.name
 
@@ -90,14 +93,15 @@ class Project(models.Model):
    ('武汉希望组', '武汉希望组'),
    ('武汉未来组', '武汉未来组'),
 )
-    proj_id = models.CharField(_("合同号"), max_length=200)
-    proj_name = models.CharField(_("合同名称"), max_length=200)
-    proj_owner = models.CharField(_("项目归属"), max_length=200, choices=PROJ_OWNER, default='北京希望组')
-    sample_amount = models.IntegerField(_("样本数目"), null=True, blank=True) 
+    proj_id = models.CharField(_("项目编号"), max_length=200)
+    contract_id = models.CharField(_("合同编号"), max_length=200, null=True, blank=True)
+    proj_name = models.CharField(_("合同名称"), max_length=200, null=True, blank=True)
+    proj_owner = models.CharField(_("项目归属"), max_length=200, choices=PROJ_OWNER, default='北京希望组', null=True)
+    sample_amount = models.IntegerField(_("样本数目"), null=True, blank=True)
 
     custom = models.ForeignKey(Custom, related_name='project_custom', verbose_name=_('客户名称'),
                                on_delete=models.PROTECT, null=True, blank=False)
-
+    project_type = models.CharField(_("项目类型"), max_length=200, null=True, blank=True)
     platform = models.ManyToManyField(Platform, verbose_name=_("测序平台"), blank=True )    
     analysis_type = models.ManyToManyField(Analysis_Type, verbose_name=_("分析类型"), blank=True)
     start = models.DateField(_("启动时间"), null=True, blank=True)
@@ -113,7 +117,8 @@ class Project(models.Model):
     price = models.IntegerField(_("总额"), null=True, blank=True) 
     pay_money = models.IntegerField(_("已付款"), null=True, blank=True) 
 
-    status = models.CharField(_("状态"), max_length=20, choices=STATUSES, default='to-do')
+    status = models.CharField(_("状态"), max_length=200, default='to-do')
+    #status = models.CharField(_("状态"), max_length=20, choices=STATUSES, default='to-do')
     priority = models.CharField(_("优先级"), max_length=20, choices=PRIORITIES, default='10_normal')
     description = models.TextField(_("备注"), max_length=2000, null=True, blank=True)
 
@@ -152,18 +157,31 @@ class Sample(models.Model):
         ('Blocker', _('Blocker'))
     )
 
+    SEX = (
+    ('F', '女'),
+    ('M', '男'),
+    ('U', '未知')
+
+)
     project = models.ForeignKey(Project, related_name='sample', verbose_name=_('合同编号'),
                                    on_delete=models.PROTECT, null=True, blank=True)
 
     sample_id = models.CharField(_("样本编号"), max_length=200)
     sample_name = models.CharField(_("样本姓名"), max_length=200)
     sample_name2 = models.CharField(_("修正姓名"), max_length=200, null=True, blank=True)
+    age = models.IntegerField(_("修正姓名"), null=True, blank=True)
+    sex = models.CharField(_("性别"), max_length=10, null=True, blank=True, choices=SEX)
+    nation = models.CharField(_("民族"), max_length=10, null=True, blank=True)
+    
+    bct_id = models.CharField(_("采血管编号"), max_length=500, null=True, blank=True) # 采血管blood collection tube
     platform = models.ManyToManyField(Platform, verbose_name=_("测序平台"), blank=True )    
     analysis_type = models.ManyToManyField(Analysis_Type, verbose_name=_("分析类型"), blank=True)
-    sample_type = models.CharField(_("样本类型"), max_length=20, null=True, blank=True)
+    sample_type = models.CharField(_("样本类型"), max_length=20, null=True, blank=True) #DNA OR RNA
+    sample_use = models.CharField(_("样本用途"), max_length=20, null=True, blank=True) #DNA OR RNA
     start = models.DateField(_("开始时间"), null=True, blank=True)
     end = models.DateTimeField(_("交付时间"), null=True, blank=True)
     deadline = models.DateField(_("截止时间"), null=True, blank=True)
+    period = models.IntegerField(_('项目周期', null=True, blank=True)
     data_size = models.CharField(_("数据量"),max_length=500, null=True, blank=True)
     receive_start = models.DateTimeField(_("收样开始时间"), null=True, blank=True)
     extract_finish = models.BooleanField("提取完成", blank=True, default=False) 
@@ -172,8 +190,10 @@ class Sample(models.Model):
     bioinfo_finish = models.BooleanField("生信完成", blank=True, default=False)
     priority = models.CharField(_("优先级"), max_length=20, choices=PRIORITIES, default='10_normal')
     status = models.CharField(_("状态"), max_length=20, choices=STATUSES, default='to-do')
+    clin_info = models.TextField(_("临床信息"), max_length=2000, null=True, blank=True)
     description = models.TextField(_("备注"), max_length=2000, null=True, blank=True)
-    
+     
+ 
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, editable=False)
     last_modified = models.DateTimeField(_("上次修改"), auto_now=True, editable=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sample_created', verbose_name=_('created by'),
@@ -250,7 +270,7 @@ class Sequence(models.Model):
     cell_pos = models.CharField(_("上机位置"), max_length=50, null=True, blank=True)
     sequence_start = models.DateTimeField(_("测序开始时间"), null=True, blank=True)
     sequence_end = models.DateTimeField(_("测序结束时间"), null=True, blank=True)
-    #is_finish = BooleanField("是否完成", null=True, blank=True) 
+    is_finish = models.BooleanField("是否完成", default=False) 
     yield_data = models.FloatField(_("产量"), null=True, blank=True)
     ap_total = models.IntegerField(_("Total"), null=True, blank=True)
     ap_muxscan = models.IntegerField(_("Muxscan"), null=True, blank=True)
